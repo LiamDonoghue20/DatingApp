@@ -7,6 +7,7 @@ using API.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using API.Middleware;
 
 namespace API
 {
@@ -44,6 +45,7 @@ namespace API
 
             app.UseRouting();
 
+            app.UseMiddleware<ExceptionMiddleware>();
             app.UseCors(policy => policy.AllowAnyHeader().AllowAnyMethod().WithOrigins("https://localhost:4200"));
 
             app.UseAuthentication();
