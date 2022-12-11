@@ -27,8 +27,15 @@ namespace API
             services.AddApplicationServices(_config);    
             services.AddControllers();
             services.AddSwaggerGen();
-            services.AddCors();
+            // services.AddCors();
+            services.AddCors(setup =>
+            {
+                setup.AddPolicy("AngularLocalPolicy",
+                  config => { config.WithOrigins("https://localhost:4200")
+                  .AllowAnyHeader().AllowAnyMethod(); });
+            });
             services.AddIdentityServices(_config);
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -46,8 +53,8 @@ namespace API
             app.UseRouting();
 
             app.UseMiddleware<ExceptionMiddleware>();
-            app.UseCors(policy => policy.AllowAnyHeader().AllowAnyMethod().WithOrigins("https://localhost:4200"));
-
+            // app.UseCors(policy => policy.AllowAnyHeader().AllowAnyMethod().WithOrigins("https://localhost:4200"));
+            app.UseCors("AngularLocalPolicy");
             app.UseAuthentication();
 
             app.UseAuthorization();
