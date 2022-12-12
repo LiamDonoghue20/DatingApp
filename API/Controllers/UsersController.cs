@@ -89,5 +89,57 @@ namespace API.Controllers
 
             return BadRequest("Problem adding photo");
         }
+        [HttpPut("set-main-photo/{photoId}")]
+        public async Task<ActionResult> SetMainPhoto(int photoId)
+        {
+            //get the current user
+            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            
+            //protection if the user isnt found
+            if(user == null) return NotFound();
+            //gets the photo that matches the ID that has been passed in
+            var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
+
+            //if no photo to return is found then response NotFound
+            if (photo == null) return NotFound();
+            //if the photo is already main return bad request
+            if(photo.IsMain) return BadRequest("this is already your main photo");
+            //get what the current main photo is
+            var currentMain = user.Photos.FirstOrDefault(x => x.IsMain);
+            //if we do have a photo that is currently the main, set it to false 
+            if (currentMain != null) currentMain.IsMain = false;
+            //set the new photo to true
+            photo.IsMain = true;
+
+            //if the photo can be updated to main then return a 201 (no response because its an update)
+            if(await _userRepository.SaveAllAsync()) return NoContent();
+            //if all the above fails just respond with bad request
+            return BadRequest("Problem setting main photo");
+        }
+
+        [HttpDelete("delete-photo/{photoId}")]
+        public async Task<ActionResult> DeletePhoto(int photoId)
+        {
+            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
+
+            if(photo == null) return NotFound();
+
+            if(photo.IsMain) return BadRequest("You cannot delete your main photo");
+
+            //ones with a public ID need to be delete from Cloudinary ALSO
+            if (photo.PublicId != null)
+            {
+                var result = await _photoService.DeletePhotoAsync(photo.PublicId);
+                if (result.Error != null) return BadRequest(result.Error.Message);
+            }
+
+            user.Photos.Remove(photo);
+
+            if(await _userRepository.SaveAllAsync()) return Ok();
+
+            return BadRequest("Problem deleting photo");
+
+        }
     }
 }
