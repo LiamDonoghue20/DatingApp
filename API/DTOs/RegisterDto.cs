@@ -6,7 +6,7 @@ namespace API.DTOs
     public class RegisterDto
     {
         [Required] public string Username { get; set;}
-        [Required] public string KnowAs {get; set;}
+        [Required] public string KnownAs {get; set;}
         [Required] public string Gender {get; set;}
         //dateOnly as optional so it can be null when defined, if it isnt optional it'll automatically use todays date
         [Required] public DateOnly? DateOfBirth {get; set;} //optional to make required work!
