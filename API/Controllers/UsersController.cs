@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using API.Extensions;
 using API.Entities;
+using API.helpers;
 
 namespace API.Controllers
 {
@@ -25,9 +26,23 @@ namespace API.Controllers
 
         [HttpGet]
       
-        public async Task <ActionResult<IEnumerable<MemberDto>>> GetUsers()
+      //from query tells the api we will need to find the user params from the query
+        public async Task <ActionResult<PagedList<MemberDto>>> GetUsers([FromQuery]UserParams userParams)
         {
-           var users = await _userRepository.GetMembersAsync();
+           var currentUser = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+           //set the current user in the user params to the user returned by the getusername async function
+           userParams.CurrentUsername = currentUser.UserName;
+           
+           //if gender isnt set currently in the user params (the gender preference) , set it as opposite to the current users gender
+           if(string.IsNullOrEmpty(userParams.Gender))
+           {
+            userParams.Gender = currentUser.Gender == "male" ? "female" : "male";
+           }
+           //call the get members function with the user parameters
+           var users = await _userRepository.GetMembersAsync(userParams);
+
+           Response.AddPagionationHeader(new PaginationHeader(users.CurrentPage, 
+            users.PageSize, users.TotalCount, users.TotalPages));
 
            return Ok(users);
 

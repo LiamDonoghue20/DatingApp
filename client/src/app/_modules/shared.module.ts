@@ -5,8 +5,9 @@ import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
 import { TabsModule } from 'ngx-bootstrap/tabs';
 import { NgxGalleryModule } from '@kolkov/ngx-gallery';
 import { FileUploadModule } from 'ng2-file-upload';
-import { BsDatepickerModule } from 'ngx-bootstrap/datepicker'
-
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { PaginationModule } from 'ngx-bootstrap/pagination';
+import { ButtonsModule } from 'ngx-bootstrap/buttons';
 
 
 @NgModule({
@@ -20,7 +21,9 @@ import { BsDatepickerModule } from 'ngx-bootstrap/datepicker'
     TabsModule.forRoot(),
     NgxGalleryModule,
     FileUploadModule,
-    BsDatepickerModule.forRoot()
+    BsDatepickerModule.forRoot(),
+    PaginationModule.forRoot(),
+    ButtonsModule.forRoot()
     
   ],
   // exporting them so they can be used in the app module
@@ -30,7 +33,9 @@ import { BsDatepickerModule } from 'ngx-bootstrap/datepicker'
     TabsModule,
     NgxGalleryModule,
     FileUploadModule,
-    BsDatepickerModule
+    BsDatepickerModule,
+    PaginationModule,
+    ButtonsModule
   ]
 })
 export class SharedModule { }
