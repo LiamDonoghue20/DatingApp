@@ -1,10 +1,12 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { map, of } from 'rxjs';
+import { map, of, take } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { Member } from '../_models/member';
 import { PaginatedResult } from '../_models/pagination';
+import { User } from '../_models/user';
 import { UserParams } from '../_models/userParams';
+import { AccountService } from './account.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,12 +14,42 @@ import { UserParams } from '../_models/userParams';
 export class MembersService {
   baseUrl = environment.apiUrl;
   members: Member[] = []
-  constructor(private http: HttpClient) { }
+  memberCache = new Map();
+  user: User | undefined;
+  userParams: UserParams | undefined;
 
+  constructor(private http: HttpClient, private accountService: AccountService) { 
+    this.accountService.currentUser$.pipe(take(1)).subscribe({
+      next: user => {
+        if (user) {
+          this.userParams = new UserParams(user);
+          this.user = user;
+        }
+      }
+    })
 
+  }
+
+  getUserParams(){
+    return this.userParams;
+  }
+
+  setUserParams(params: UserParams){
+    this.userParams = params;
+  }
+
+  resetUserParams(){
+    if(this.user){
+      this.userParams = new UserParams(this.user);
+      return this.userParams;
+    }
+  }
 
   getMembers(userParams: UserParams){
-    //sets the params from the http request
+    const response = this.memberCache.get(Object.values(userParams).join('-'));
+
+    if(response)  return of(response)
+     //sets the params from the http request
     let params = this.getPaginationHeaders(userParams.pageNumber, userParams.pageSize);
 
     params = params.append('minAge', userParams.minAge);
@@ -25,7 +57,42 @@ export class MembersService {
     params = params.append('gender', userParams.gender);
     params = params.append('orderBy', userParams.orderBy);
     //Call get to users endpoint and observe the response to map the pagination settings into the params variable
-    return this.getPaginatedResult<Member[]>(this.baseUrl+'users',params)
+    return this.getPaginatedResult<Member[]>(this.baseUrl+'users',params).pipe(
+      map(response => {
+        this.memberCache.set(Object.values(userParams).join('-'), response); 
+        return response;
+      })
+    )
+  }
+
+  getMember(username: string){
+    const member =  [...this.memberCache.values()]
+      .reduce((arr, elem) => arr.concat(elem.result), [])
+      .find((member: Member) => member.userName === username)
+
+    if (member) return of(member)
+
+    //if we dont have it in our cache grab it from the API
+    return this.http.get<Member>(this.baseUrl + 'users/'+username)
+  
+  }
+
+  updateMember(member: Member) {
+   return this.http.put(this.baseUrl + 'users', member).pipe(
+    map(() => {
+      const index = this.members.indexOf(member);
+      // the ... operator takes the member thats available at that index and spreads all the info (id/username/knowas etc)
+      this.members[index] = {...this.members[index], ...member}
+    })
+   )
+  }
+
+  setMainPhoto(photoId: number){
+    return this.http.put(this.baseUrl + 'users/set-main-photo/' + photoId, {})
+  }
+
+  deletePhoto(photoId: number){
+    return this.http.delete(this.baseUrl + 'users/delete-photo/'+ photoId)
   }
 
   private getPaginatedResult<T>(url: string, params: HttpParams) {
@@ -51,30 +118,5 @@ export class MembersService {
     params = params.append('pageSize', pageSize);
 
     return params;
-  }
-
-  getMember(username: string){
-    const member = this.members.find(x => x.userName === username);
-    if (member) return of (member);
-    return this.http.get<Member>(this.baseUrl + 'users/'+username)
-  
-  }
-
-  updateMember(member: Member) {
-   return this.http.put(this.baseUrl + 'users', member).pipe(
-    map(() => {
-      const index = this.members.indexOf(member);
-      // the ... operator takes the member thats available at that index and spreads all the info (id/username/knowas etc)
-      this.members[index] = {...this.members[index], ...member}
-    })
-   )
-  }
-
-  setMainPhoto(photoId: number){
-    return this.http.put(this.baseUrl + 'users/set-main-photo/' + photoId, {})
-  }
-
-  deletePhoto(photoId: number){
-    return this.http.delete(this.baseUrl + 'users/delete-photo/'+ photoId)
   }
 }
