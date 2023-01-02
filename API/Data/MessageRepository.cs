@@ -42,9 +42,8 @@ namespace API.Data
                 .Where(
                     //get both the messages sent by the user and the message received by the user
                     //messages received
-                    m => m.RecipientUsername == currentUserName && m.RecipientDeleted = false && 
+                    m => m.RecipientUsername == currentUserName && m.RecipientDeleted == false &&
                     m.SenderUsername == recipientUserName ||
-                    // OR messages sent
                     m.RecipientUsername == recipientUserName && m.SenderDeleted == false &&
                     m.SenderUsername == currentUserName
                 )
