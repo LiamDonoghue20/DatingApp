@@ -42,13 +42,13 @@ namespace API.Data
                 .Where(
                     //get both the messages sent by the user and the message received by the user
                     //messages received
-                    m => m.RecipientUsername == currentUserName && 
+                    m => m.RecipientUsername == currentUserName && m.RecipientDeleted = false && 
                     m.SenderUsername == recipientUserName ||
                     // OR messages sent
-                    m.RecipientUsername == recipientUserName &&
+                    m.RecipientUsername == recipientUserName && m.SenderDeleted == false &&
                     m.SenderUsername == currentUserName
                 )
-                .OrderBy(m => m.DateSent)
+                .OrderByDescending(m => m.DateSent)
                 .ToListAsync();
 
                 //unread messages for the user (where date read is equal to null and recipient name is current username)
@@ -73,16 +73,20 @@ namespace API.Data
         {
             var query = _context.Messages
             //get the latest message first
-                .OrderByDescending(x => x.DateSent)
+                .OrderBy(x => x.DateSent)
                 .AsQueryable();
 
             //get the container from the message params to see what the user wants to view via the switch statement
             //inbox outbox or unread messages
             query = messageParams.Container switch
             {
-                "Inbox" => query.Where(u => u.RecipientUsername == messageParams.Username),
-                "Outbox" => query.Where(u => u.SenderUsername == messageParams.Username),
-                _ => query.Where(u => u.RecipientUsername == messageParams.Username && u.DateRead == null)
+                "Inbox" => query.Where(u => u.RecipientUsername == messageParams.Username 
+                && u.RecipientDeleted  == false),
+                "Outbox" => query.Where(u => u.SenderUsername == messageParams.Username 
+                && u.SenderDeleted == false),
+                _ => query.Where(u => u.RecipientUsername == messageParams.Username 
+                && u.RecipientDeleted == false
+                && u.DateRead == null)
             };
             //project that query to a message DTO to fill in the fields
             var messages = query.ProjectTo<MessageDto>(_mapper.ConfigurationProvider);

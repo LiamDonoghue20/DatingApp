@@ -1,8 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NgxGalleryAnimation, NgxGalleryImage, NgxGalleryOptions } from '@kolkov/ngx-gallery';
+import { TabDirective, TabsetComponent } from 'ngx-bootstrap/tabs';
 import { Member } from 'src/app/_models/member';
+import { Message } from 'src/app/_models/message';
 import { MembersService } from 'src/app/_services/members.service';
+import { MessageService } from 'src/app/_services/message.service';
 
 @Component({
   selector: 'app-member-detail',
@@ -10,15 +14,27 @@ import { MembersService } from 'src/app/_services/members.service';
   styleUrls: ['./member-detail.component.css']
 })
 export class MemberDetailComponent implements OnInit {
-  member: Member | undefined;
+  @ViewChild('memberTabs', {static: true}) memberTabs?: TabsetComponent;
+  member: Member = {} as Member;
   galleryOptions: NgxGalleryOptions[] = [];
   galleryImages: NgxGalleryImage[] = [];
+  activeTab?: TabDirective;
+  messages: Message[] = [];
 
-  constructor(private memberService: MembersService, private route: ActivatedRoute) { }
+  constructor(
+     private memberService: MembersService, 
+     private route: ActivatedRoute,
+     private messageService: MessageService) { }
 
   ngOnInit(): void {
-    this.loadMember();
-
+    this.route.data.subscribe({
+      next: data => this.member = data['member']
+    });
+    this.route.queryParams.subscribe({
+      next: params => {
+        params['tab'] && this.selectTab(params['tab'])
+      }
+    })
     this.galleryOptions = [
       {
         width: '500px;',
@@ -29,7 +45,7 @@ export class MemberDetailComponent implements OnInit {
         preview: false
       }
     ]
-
+    this.galleryImages = this.getImages();
   }
 
   getImages() {
@@ -45,19 +61,27 @@ export class MemberDetailComponent implements OnInit {
     return imageUrls;
   }
 
-  loadMember() {
-    //get the username from the route (we pass the username to this component via our app-routing module)
-    const username = this.route.snapshot.paramMap.get('username');
-    //if there is no username in the route parameters than end this request
-    if(!username) return;
-    //otherwise set the local variable of member to the member we get from our service
-    this.memberService.getMember(username).subscribe({
-      next: member => 
-      {
-        this.member = member,
-        this.galleryImages = this.getImages();
-      }
-    })
+
+
+  selectTab(heading: string){
+    if(this.memberTabs) {
+      this.memberTabs.tabs.find(x => x.heading === heading)!.active = true;
+    }
+  }
+
+  onTabActivated(data: TabDirective){
+    this.activeTab = data;
+    if(this.activeTab.heading === 'Messages'){
+      this.loadMessages();
+    }
+  }
+
+  loadMessages() {
+    if(this.member) {
+      this.messageService.getMessageThread(this.member.userName).subscribe({
+        next: messages => this.messages = messages
+      })
+    }
   }
 
 }
